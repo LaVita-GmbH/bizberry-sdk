@@ -1,0 +1,26 @@
+{
+  "name": "@lavita-io/bizberry-sdk",
+  "version": "0.0.1",
+  "description": "JS SDK for BizBerry",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "semantic-release": "semantic-release"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@git.lavita.local:web/front/bizberry-sdk.git"
+  },
+  "author": "johannes hofmockel",
+  "license": "AGPL-3.0-or-later",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": ["*"],
+  "devDependencies": {
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/gitlab": "^9.1.2",
+    "@semantic-release/npm": "^9.0.1",
+    "semantic-release": "^19.0.2"
+  }
+}
