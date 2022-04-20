@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@git.lavita.local:web/front/bizberry-sdk.git"
+    "url": "git@git.lavita.io:lavita-io/front/bizberry-sdk.git"
   },
   "author": "johannes hofmockel",
   "license": "AGPL-3.0-or-later",
