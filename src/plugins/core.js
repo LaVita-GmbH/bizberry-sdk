@@ -86,14 +86,14 @@ class Core {
     }
 
     /**
-     * Force a refresh of the token to include cirtical data
+     * Force a refresh of the token to include critical data
      */
     async forceRefresh() {
         return await this.api.auth.forceRefresh()
     }
 
     /**
-     * Force a refresh of the token to include cirtical data
+     * Force a refresh of the token to include critical data
      */
     async refresh() {
         return await this.api.auth.refresh()

@@ -160,93 +160,6 @@ export class Configuration {
         window.dispatchEvent(new CustomEvent("bizberry_sdk_config_update"))
     }
 
-    // ACCESS_TOKENS DATA ========================================================
-
-    get addresses() {
-        return this.internalConfiguration.addresses
-    }
-
-    set addresses({ id, access_token }) {
-        this.partialUpdate({ addresses: { ...this.internalConfiguration.addresses, [id]: access_token } })
-    }
-
-    get contacts() {
-        return this.internalConfiguration.contacts
-    }
-
-    set contacts({ id, access_token }) {
-        this.partialUpdate({ contacts: { ...this.internalConfiguration.contacts, [id]: access_token } })
-    }
-
-    get financeAccounts() {
-        return this.internalConfiguration.financeAccounts
-    }
-
-    set financeAccounts({ id, access_token }) {
-        this.partialUpdate({ financeAccounts: { ...this.internalConfiguration.financeAccounts, [id]: access_token } })
-    }
-
-    // CART DATA =================================================================
-
-    get currency() {
-        return this.internalConfiguration.currency
-    }
-
-    set currency(currency) {
-        this.internalConfiguration.currency = currency
-    }
-
-    get pricelist_id() {
-        return this.internalConfiguration.pricelist_id
-    }
-
-    set pricelist_id(id) {
-        this.partialUpdate({ pricelist_id: id })
-        window.dispatchEvent(new CustomEvent("bizberry_sdk_config_update"))
-    }
-
-    get cart_id() {
-        return this.getCookieData("cart_id")
-    }
-
-    set cart_id(id) {
-        if (this.internalConfiguration.crossDomain) {
-            setCookie(`${STORAGE_KEY}-cart_id`, id, this.internalConfiguration.crossDomain)
-        }
-        this.partialUpdate({ cart_id: id })
-        window.dispatchEvent(new CustomEvent("bizberry_sdk_config_update"))
-    }
-
-    get cart_access_token() {
-        return this.getCookieData("cart_access_token")
-    }
-
-    set cart_access_token(token) {
-        if (this.internalConfiguration.crossDomain) {
-            setCookie(`${STORAGE_KEY}-cart_access_token`, token, this.internalConfiguration.crossDomain)
-        }
-        this.partialUpdate({ cart_access_token: token })
-        window.dispatchEvent(new CustomEvent("bizberry_sdk_config_update"))
-    }
-
-    get historic_cart_id() {
-        return this.internalConfiguration.historic_cart_id
-    }
-
-    set historic_cart_id(id) {
-        this.partialUpdate({ historic_cart_id: id })
-        window.dispatchEvent(new CustomEvent("bizberry_sdk_config_update"))
-    }
-
-    get historic_cart_access_token() {
-        return this.internalConfiguration.historic_cart_access_token
-    }
-
-    set historic_cart_access_token(token) {
-        this.partialUpdate({ historic_cart_access_token: token })
-        window.dispatchEvent(new CustomEvent("bizberry_sdk_config_update"))
-    }
-
     // HELPER METHODS ============================================================
 
     /**
@@ -311,14 +224,6 @@ export class Configuration {
         delete this.internalConfiguration.email
         delete this.internalConfiguration.user_id
         delete this.internalConfiguration.client_id
-        delete this.internalConfiguration.pricelist_id
-        delete this.internalConfiguration.cart_id
-        delete this.internalConfiguration.cart_access_token
-        delete this.internalConfiguration.historic_cart_id
-        delete this.internalConfiguration.historic_cart_access_token
-        delete this.internalConfiguration.addresses
-        delete this.internalConfiguration.contacts
-        delete this.internalConfiguration.financeAccounts
 
         this.deleteHydratedConfig()
     }
@@ -392,7 +297,7 @@ export class Configuration {
 
     awaitInit = async () => {
         if (this.is_initialized) return
-        
+
         console.debug("Awaiting INIT", this._initialize_promise)
         return await this._initialize_promise
     }

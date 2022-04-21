@@ -37,25 +37,6 @@ export class Authentication {
             )
         }
 
-        if (userToken) {
-            try {
-                const payload = getPayload(userToken)
-                const customers = await this.api.get("/customer/clients", ({ user__id: payload.sub }))
-                this.config.client_id = customers.clients[0]?.id
-                if (customers.clients[0]?.pricelist?.id) {
-                    this.config.pricelist_id = customers.clients[0]?.pricelist?.id
-                }
-            } catch (error) {
-                console.debug("Error occurred while loading customer", error)
-            }
-        } else {
-            try {
-                const pricelists = await this.api.get("/catalogue/pricelists", { is_default: true })
-                this.config.pricelist_id = pricelists.pricelists[0].id
-            } catch (error) {
-                console.debug("Error occurred while loading default pricelist", error)
-            }
-        }
         this.config.is_initialized = true
     }
 
@@ -129,9 +110,6 @@ export class Authentication {
         this.config.email = undefined
         this.config.user_id = undefined
         this.config.client_id = undefined
-        this.config.pricelist_id = undefined
-        this.config.cart_id = undefined
-        this.config.cart_access_token = undefined
 
         return
     }
