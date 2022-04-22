@@ -27,7 +27,6 @@ export function getPayload(token) {
         return payloadObject
     } catch (err) {
         // return empty payload in case of an error
-        
         return {}
     }
 }
