@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git@git.lavita.io:lavita-io/front/bizberry-sdk.git"
   },
-  "author": "johannes hofmockel",
+  "author": "Johannes Hofmockel <johannes.hofmockel@lavita.de>",
   "license": "AGPL-3.0-or-later",
   "publishConfig": {
     "access": "public"
