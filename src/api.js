@@ -1,4 +1,3 @@
-import { Authentication } from "./auth"
 import { querify } from "./utils/params"
 
 export class APIError extends Error {
@@ -65,15 +64,11 @@ export class APIError extends Error {
 }
 
 export class API {
-    constructor(config, cache, reAuth) {
+    constructor(config, cache, reAuth, auth) {
         this.config = config
         this.cache = cache
         this.reAuth = reAuth
-        this.auth = new Authentication(config, {
-            post: this.post.bind(this),
-            get: this.get.bind(this),
-            request: this.request.bind(this),
-        })
+        this.auth = auth
         this.request = this.request.bind(this)
     }
 
@@ -85,97 +80,6 @@ export class API {
         this.auth.stopInterval()
         this.config.reset()
         this.cache.reset()
-    }
-
-    loadData(relation, id, params, level, maxLevel) {
-        let relation_location = relation.split("/")
-        if (relation_location[0] === "bizberry") {
-            relation_location[0] = ""
-            const endpoint = `${relation_location.join("/")}/${id}`
-            const query = params && Object.keys(params).length ? "?" + querify(params) : ""
-            const cache_key = endpoint + query
-            if (!this.cache.cache[cache_key]) {
-                this.cache.cache[cache_key] = {
-                    request: (async () => {
-                        try {
-                            return await this.request("GET", endpoint, params, undefined, undefined, undefined, level + 1, maxLevel)
-                        } catch (error) {
-                            console.error("Error while loadData", relation, id, params, error)
-                            delete this.cache.cache[cache_key]
-                            throw error
-                        }
-                    })(),
-                    created_at: new Date(),
-                }
-            }
-            return this.cache.cache[cache_key]
-        } else {
-            throw Error(`Cannot load data for $rel=${relation}`)
-        }
-    }
-
-    async _enrichObject(values, key, originParams, level, maxLevel) {
-        if (key === "_parent") return
-        if (key === "$rel") {
-            const replace = (_, path) =>
-                path
-                    .split(".")
-                    .slice(1)
-                    .reduce((a, b) => a[b], values)
-            const regex = new RegExp("{([^}]+)}")
-            try {
-                values.$rel = values.$rel.replace(regex, replace)
-            } catch (error) {
-                console.debug(error)
-                return
-            }
-
-            // TODO hook for plugins
-
-            if (values.access_token) {
-                values.$rel_params = { ...values.$rel_params, access_token: values.access_token }
-            }
-            const data = this.loadData(values.$rel, values.id, values.$rel_params, level, maxLevel)
-            if (data) {
-                const { request, created_at, updated_at } = data
-                try {
-                    const response = await request
-                    Object.assign(values, response, {
-                        $rel_created_at: created_at,
-                        $rel_updated_at: updated_at,
-                    })
-                } catch (error) {
-                    console.error("failed to receive response", error)
-                }
-            }
-        } else {
-            await this.enrichData(values[key], values, originParams, level + 1, maxLevel)
-        }
-        if (values._parent) delete values._parent
-    }
-
-    async enrichData(values, parent, originParams, level, maxLevel) {
-        if (level >= maxLevel) {
-            console.debug("Stop enrichData because of too high level of recursion")
-            return
-        }
-
-        // with typeof arrays are objects aswell
-        if (typeof values !== "object" || values === null) return
-
-        if (Array.isArray(parent)) {
-            values._parent = parent._parent
-        } else if (parent !== undefined) {
-            values._parent = parent
-        }
-        const enrichObjects = Object.keys(values).map(key => this._enrichObject(values, key, originParams, level, maxLevel))
-        await Promise.allSettled(enrichObjects)
-    }
-
-    updateCache(endpoint, query, data) {
-        const cache_key = endpoint + query
-        if (!this.cache.cache[cache_key]) return
-        this.cache.cache[cache_key] = { ...this.cache.cache[cache_key], request: data, updated_at: new Date() }
     }
 
     /**
@@ -232,7 +136,7 @@ export class API {
     }
 
     /**
-     * Perform an API request to the Olypm API
+     * Perform an API request to the Bizberry API
      * @param {string} method                   Selected HTTP method
      * @param {string} endpoint                 Endpoint definition as path
      * @param {object={}} params                Query parameters
@@ -290,8 +194,6 @@ export class API {
             if (!responseData) responseData = {}
 
             if (response.ok || response.status === 402) {
-                this.updateCache(endpoint, query, responseData)
-                await this.enrichData(responseData, undefined, params, level, maxLevel)
                 return responseData
             }
 
@@ -354,10 +256,6 @@ export class API {
                 event_id: errorResponseData.event_id,
                 detail: detail?.detail,
                 loc: detail?.loc,
-            }
-
-            if (detail?.detail) {
-                await this.enrichData(detail.detail, undefined, params)
             }
 
             if (Array.isArray(errorResponseData.detail)) {

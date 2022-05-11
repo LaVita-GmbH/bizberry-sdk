@@ -26,7 +26,7 @@ class Access {
         this.config.user_id = user.id
         const clone = { ...body }
         delete clone.language
-        await this.login(clone)  
+        await this.login(clone)
         return user
     }
 
