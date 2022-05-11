@@ -11,7 +11,7 @@ export class SDK {
     static plugins = []
 
     // create a new instance with an API
-    constructor(options, reAuth) {
+    constructor(reAuth) {
         this.reAuth = reAuth
         this.cache = new Cache()
         this.api = new API(this.config, this.cache, reAuth)
