@@ -1,4 +1,4 @@
-import * as base64 from "base-64"
+// import * as base64 from "base-64"
 
 /**
  * Retrieves the payload from a JWT
@@ -17,7 +17,7 @@ export function getPayload(token) {
             .split(".")[1]
             .replace("-", "+")
             .replace("_", "/")
-        const payloadDecoded = base64.decode(payloadBase64)
+        const payloadDecoded = null //base64.decode(payloadBase64)
         const payloadObject = JSON.parse(payloadDecoded)
 
         if (payloadObject.exp) {

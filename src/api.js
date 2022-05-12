@@ -64,12 +64,23 @@ export class APIError extends Error {
 }
 
 export class API {
+
+    static current
+
+    static init() {
+        API.current = new API()
+    }
+
     constructor(config, cache, reAuth, auth) {
         this.config = config
         this.cache = cache
         this.reAuth = reAuth
         this.auth = auth
         this.request = this.request.bind(this)
+    }
+
+    async login(values) {
+        console.log("login:", values)
     }
 
     /**
