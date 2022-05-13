@@ -1,4 +1,5 @@
 import { AbstractStore } from "./abstract-store"
+import { getPayload } from "./utils/payload"
 import { querify } from "./utils/params"
 
 export class APIError extends Error {
@@ -93,6 +94,11 @@ export class API {
         }
     }
 
+    logout = async () => {
+        this.store.del("token_user")
+        this.store.del("token_transaction")
+    }
+
     getTransactionToken = async (includeCritical = false) => {
         const body = {
             include_critical: includeCritical,
@@ -106,10 +112,35 @@ export class API {
     }
 
     /**
-     * Resets the client instance by logging out and removing the URL and project
+     *
+     * @param {string} token
+     * @param {number} interval
+     */
+    validateToken = async (token, interval = 30000) => {
+        if (!token) {
+            return false
+        }
+
+        const payload = getPayload(token)
+
+        if (!payload || !payload.exp) {
+            return false
+        }
+
+        const timeDiff = payload.exp - Date.now()
+
+        if (timeDiff < interval) {
+            return false
+        }
+
+        return true
+    }
+
+    /**
+     * Resets the client instance by logging out
      */
     reset = () => {
-        this.store.del("token_user")
+        this.logout()
     }
 
     /**
@@ -183,6 +214,11 @@ export class API {
 
         if (headers !== null && !headers?.["Authorization"]) {
             // TODO set authorization token in headers
+            if (this.store.get("token_user")) {
+                headers["Authorization"] = this.store.get("token_user")
+            } else {
+                headers["Authorization"] = this.store.get("token_transaction")
+            }
         }
 
         try {
