@@ -87,7 +87,6 @@ export class API {
 
     login = async values => {
         console.log("login:", values)
-
         values.tenant = { id: this.tenant }
 
         const data = await this.post("/access/auth/user", values)
@@ -111,6 +110,27 @@ export class API {
         })
 
         this.store.set("token_transaction", data.token.transaction)
+
+        /**Should token be validated? */
+        const validToken = this.validateToken(this.store.set("token_transaction", data.token.transaction))
+
+        if (!validToken) {
+            this.logout()
+        }
+    }
+
+    refreshIfNeeded = async () => {
+        const { tokenTransaction } = this.store.get("token_transaction")
+
+        if (!tokenTransaction) {
+            try {
+                return await this.getTransactionToken()
+            } catch (error) {
+                return
+            }
+        }
+
+        return
     }
 
     /**
