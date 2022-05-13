@@ -78,20 +78,22 @@ export class API {
      * @param {string} options.url
      *
      */
-    constructor({ store, url }) {
+    constructor({ store, url, tenant }) {
         /** @type { AbstractStore } */
         this.store = store
         this.url = url
+        this.tenant = tenant
     }
 
     login = async values => {
         console.log("login:", values)
-        try {
-            const data = await this.post("/access/auth/user", values)
-            this.store.set("token_user", data.token.user, { isPersitent: true })
-        } catch (error) {
-            throw error
-        }
+
+        values.tenant = { id: this.tenant }
+
+        const data = await this.post("/access/auth/user", values)
+        this.store.set("token_user", data.token.user, { isPersistent: true })
+
+        await this.getTransactionToken()
     }
 
     logout = async () => {
@@ -134,13 +136,6 @@ export class API {
         }
 
         return true
-    }
-
-    /**
-     * Resets the client instance by logging out
-     */
-    reset = () => {
-        this.logout()
     }
 
     /**
@@ -213,12 +208,7 @@ export class API {
         const query = params && Object.keys(params).length ? "?" + querify(params) : ""
 
         if (headers !== null && !headers?.["Authorization"]) {
-            // TODO set authorization token in headers
-            if (this.store.get("token_user")) {
-                headers["Authorization"] = this.store.get("token_user")
-            } else {
-                headers["Authorization"] = this.store.get("token_transaction")
-            }
+            headers["Authorization"] = this.store.get("token_transaction")
         }
 
         try {

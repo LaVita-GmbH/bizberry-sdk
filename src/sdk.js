@@ -14,7 +14,7 @@ export class SDK {
     constructor(reAuth) {
         this.reAuth = reAuth
         this.cache = new Cache()
-        this.api = new API(this.config, this.cache, reAuth)
+        this.api = new API(this.cache, reAuth)
 
         this.plugins.forEach(plugin => bindToClass(plugin, this))
     }
