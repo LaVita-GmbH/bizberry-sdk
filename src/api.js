@@ -1,3 +1,4 @@
+import { AbstractStore } from "./abstract-store"
 import { querify } from "./utils/params"
 
 export class APIError extends Error {
@@ -64,34 +65,51 @@ export class APIError extends Error {
 }
 
 export class API {
-
     static current
 
-    static init() {
-        API.current = new API()
+    static init(options) {
+        API.current = new API(options)
     }
 
-    constructor(config, cache, reAuth, auth) {
-        this.config = config
-        this.cache = cache
-        this.reAuth = reAuth
-        this.auth = auth
-        this.request = this.request.bind(this)
+    /**
+     * @param options
+     * @param {AbstractStore} options.store
+     * @param {string} options.url
+     *
+     */
+    constructor({ store, url }) {
+        /** @type { AbstractStore } */
+        this.store = store
+        this.url = url
     }
 
-    async login(values) {
+    login = async values => {
         console.log("login:", values)
-        
+        try {
+            const data = await this.post("/access/auth/user", values)
+            this.store.set("token_user", data.token.user, { isPersitent: true })
+        } catch (error) {
+            throw error
+        }
+    }
+
+    getTransactionToken = async (includeCritical = false) => {
+        const body = {
+            include_critical: includeCritical,
+        }
+
+        const data = await this.post("/access/auth/transaction", body, undefined, {
+            Authorization: this.store.get("token_user"),
+        })
+
+        this.store.set("token_transaction", data.token.transaction)
     }
 
     /**
      * Resets the client instance by logging out and removing the URL and project
      */
-    reset() {
-        this.auth.logout()
-        this.auth.stopInterval()
-        this.config.reset()
-        this.cache.reset()
+    reset = () => {
+        this.store.del("token_user")
     }
 
     /**
@@ -100,7 +118,7 @@ export class API {
      * @param {object} params        Query parameters
      * @return {Promise}
      */
-    async get(endpoint, params) {
+    get = async (endpoint, params) => {
         return await this.request("GET", endpoint, params)
     }
 
@@ -111,8 +129,8 @@ export class API {
      * @param {object} params        Query parameters
      * @return {Promise}
      */
-    async post(endpoint, body, params) {
-        return await this.request("POST", endpoint, params, body)
+    post = async (endpoint, body, params, headers) => {
+        return await this.request("POST", endpoint, params, body, headers)
     }
 
     /**
@@ -122,7 +140,7 @@ export class API {
      * @param {object} params        Query parameters
      * @return {Promise}
      */
-    async patch(endpoint, body, params) {
+    patch = async (endpoint, body, params) => {
         return await this.request("PATCH", endpoint, params, body)
     }
 
@@ -133,7 +151,7 @@ export class API {
      * @param {object} params        Query parameters
      * @return {Promise}
      */
-    async put(endpoint, body, params) {
+    put = async (endpoint, body, params) => {
         return await this.request("PUT", endpoint, params, body)
     }
 
@@ -143,7 +161,7 @@ export class API {
      * @param {object} params        Query parameters
      * @return {Promise}
      */
-    async delete(endpoint, params) {
+    delete = async (endpoint, params) => {
         return await this.request("DELETE", endpoint, params)
     }
 
@@ -156,33 +174,19 @@ export class API {
      * @param {object={}} headers               Optional headers to include
      * @return {Promise}
      */
-    async request(method, endpoint, params, data = null, headers = {}, retry = 1, level = 0, maxLevel = 19) {
-        if (!this.config.url) {
+    request = async (method, endpoint, params, data = null, headers = {}, retry = 1, level = 0, maxLevel = 19) => {
+        if (!this.url) {
             throw new Error("SDK has no URL configured to send requests to.")
         }
-
-        let baseURL = `${this.config.url}${this.config.version}`
 
         const query = params && Object.keys(params).length ? "?" + querify(params) : ""
 
         if (headers !== null && !headers?.["Authorization"]) {
-            if (this.config.userToken) {
-                if (this.config.transactionUserToken) {
-                    headers["Authorization"] = this.config.transactionUserToken
-                } else {
-                    headers["Authorization"] = this.config.userToken
-                }
-            } else if (this.config.clientToken || this.config.transactionClientToken) {
-                if (this.config.transactionClientToken) {
-                    headers["Authorization"] = this.config.transactionClientToken
-                } else {
-                    headers["Authorization"] = this.config.clientToken
-                }
-            }
+            // TODO set authorization token in headers
         }
 
         try {
-            const response = await fetch(baseURL + endpoint + query, {
+            const response = await fetch(this.url + endpoint + query, {
                 method: method,
                 headers: {
                     accept: "application/json",
