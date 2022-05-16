@@ -69,6 +69,7 @@ export class API {
     static current
 
     static init(options) {
+        if (API.current) return
         API.current = new API(options)
     }
 
@@ -76,7 +77,7 @@ export class API {
      * @param options
      * @param {AbstractStore} options.store
      * @param {string} options.url
-     *
+     * @param {string} options.tenant
      */
     constructor({ store, url, tenant }) {
         /** @type { AbstractStore } */
@@ -86,10 +87,12 @@ export class API {
     }
 
     login = async values => {
-        console.log("login:", values)
         values.tenant = { id: this.tenant }
 
+        console.log("login", values)
+
         const data = await this.post("/access/auth/user", values)
+        console.log("login data", data)
         this.store.set("token_user", data.token.user, { isPersistent: true })
 
         await this.getTransactionToken()
@@ -134,7 +137,7 @@ export class API {
     }
 
     /**
-     *
+     * Validate token function
      * @param {string} token
      * @param {number} interval
      */
@@ -220,7 +223,7 @@ export class API {
      * @param {object={}} headers               Optional headers to include
      * @return {Promise}
      */
-    request = async (method, endpoint, params, data = null, headers = {}, retry = 1, level = 0, maxLevel = 19) => {
+    request = async (method, endpoint, params, data = null, headers = {}, retry = 1) => {
         if (!this.url) {
             throw new Error("SDK has no URL configured to send requests to.")
         }
@@ -228,7 +231,8 @@ export class API {
         const query = params && Object.keys(params).length ? "?" + querify(params) : ""
 
         if (headers !== null && !headers?.["Authorization"]) {
-            headers["Authorization"] = this.store.get("token_transaction")
+            console.log("inside headers not null")
+            // headers["Authorization"] = this.store.get("token_transaction")
         }
 
         try {
