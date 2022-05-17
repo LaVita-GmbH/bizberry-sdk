@@ -7,7 +7,7 @@ export class AbstractStore {
      * @param {string} key
      */
     get = async key => {
-        return this.values[key].value
+        return await this.values[key]?.value
     }
 
     /**
@@ -26,6 +26,6 @@ export class AbstractStore {
      * @param {string} key
      */
     del = async key => {
-        delete this.values[key]
+        await delete this.values[key]
     }
 }

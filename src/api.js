@@ -88,19 +88,15 @@ export class API {
 
     login = async values => {
         values.tenant = { id: this.tenant }
-
-        console.log("login", values)
-
         const data = await this.post("/access/auth/user", values)
-        console.log("login data", data)
-        this.store.set("token_user", data.token.user, { isPersistent: true })
 
+        await this.store.set("token_user", data.token.user, { isPersistent: true })
         await this.getTransactionToken()
     }
 
     logout = async () => {
-        this.store.del("token_user")
-        this.store.del("token_transaction")
+        await this.store.del("token_user")
+        await this.store.del("token_transaction")
     }
 
     getTransactionToken = async (includeCritical = false) => {
@@ -109,13 +105,17 @@ export class API {
         }
 
         const data = await this.post("/access/auth/transaction", body, undefined, {
-            Authorization: this.store.get("token_user"),
+            Authorization: await this.store.get("token_user"),
         })
 
-        this.store.set("token_transaction", data.token.transaction)
+        await this.store.set("token_transaction", data.token.transaction)
 
         /**Should token be validated? */
-        const validToken = this.validateToken(this.store.set("token_transaction", data.token.transaction))
+        const validToken = await this.validateToken(this.store.get("token_transaction"))
+
+        console.log("transaction_token from store", this.store.get("token_transaction"))
+
+        console.log("validToken", validToken)
 
         if (!validToken) {
             this.logout()
@@ -123,7 +123,7 @@ export class API {
     }
 
     refreshIfNeeded = async () => {
-        const { tokenTransaction } = this.store.get("token_transaction")
+        const { tokenTransaction } = await this.store.get("token_transaction")
 
         if (!tokenTransaction) {
             try {
@@ -232,7 +232,7 @@ export class API {
 
         if (headers !== null && !headers?.["Authorization"]) {
             console.log("inside headers not null")
-            // headers["Authorization"] = this.store.get("token_transaction")
+            headers["Authorization"] = this.store.get("token_transaction")
         }
 
         try {
