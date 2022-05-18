@@ -7,7 +7,7 @@ import * as base64 from "base-64"
  * @return {Object}       The JWT payload
  */
 export function getPayload(token) {
-    if (!token || token.length < 0) {
+    if (!token || token.length < 0 || token.split(".").length <= 0) {
         // no token or invalid token equals no payload
         return {}
     }

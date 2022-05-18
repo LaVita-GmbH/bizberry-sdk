@@ -110,12 +110,7 @@ export class API {
 
         await this.store.set("token_transaction", data.token.transaction)
 
-        /**Should token be validated? */
-        const validToken = await this.validateToken(this.store.get("token_transaction"))
-
-        console.log("transaction_token from store", this.store.get("token_transaction"))
-
-        console.log("validToken", validToken)
+        const validToken = await this.validateToken(await this.store.get("token_transaction"))
 
         if (!validToken) {
             this.logout()
@@ -123,7 +118,7 @@ export class API {
     }
 
     refreshIfNeeded = async () => {
-        const { tokenTransaction } = await this.store.get("token_transaction")
+        const tokenTransaction = await this.store.get("token_transaction")
 
         if (!tokenTransaction) {
             try {
@@ -231,7 +226,6 @@ export class API {
         const query = params && Object.keys(params).length ? "?" + querify(params) : ""
 
         if (headers !== null && !headers?.["Authorization"]) {
-            console.log("inside headers not null")
             headers["Authorization"] = this.store.get("token_transaction")
         }
 
