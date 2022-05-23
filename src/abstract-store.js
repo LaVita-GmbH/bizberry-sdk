@@ -1,12 +1,14 @@
+import autoBind from "auto-bind"
 export class AbstractStore {
     constructor() {
         this.values = {}
+        autoBind(this)
     }
 
     /**
      * @param {string} key
      */
-    get = async key => {
+    async get(key) {
         return this.values[key]?.value
     }
 
@@ -15,7 +17,7 @@ export class AbstractStore {
      * @param {string} key
      * @param {string} value
      */
-    set = async (key, value, options) => {
+    async set(key, value, options) {
         this.values[key] = {
             value,
             options,
@@ -25,7 +27,7 @@ export class AbstractStore {
     /**
      * @param {string} key
      */
-    del = async key => {
+    async del(key) {
         delete this.values[key]
     }
 }
