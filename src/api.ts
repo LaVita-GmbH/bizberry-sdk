@@ -7,7 +7,7 @@ type InfoType = {
     url: string
     method: string
     params: object
-    status: string
+    status: number
     code: number
     type: string
     msg: string
@@ -21,7 +21,7 @@ export class APIError extends Error {
     message: string
     info: InfoType
 
-    constructor(message, info) {
+    constructor(message?: string, info?: InfoType) {
         super(message) // 'Error' breaks prototype chain here
         this.message = message
         this.info = info
@@ -110,35 +110,38 @@ export class API {
 
     async login(values) {
         values.tenant = { id: this.tenant }
-        const data = await this.post("/access/auth/user", values)
+        const data = await this.post("/access/auth/user", values, undefined, undefined, false)
 
         await this.store.set("token_user", data.token.user, { isPersistent: true })
         await this.getTransactionToken()
     }
 
     async logout() {
-        console.time("API.logout")
         await this.store.del("token_user")
         await this.store.del("token_transaction")
-        console.timeEnd("API.logout")
     }
 
     async getTransactionToken(includeCritical: boolean = false) {
         const body = {
             include_critical: includeCritical,
         }
+        const userToken = await this.store.get("token_user")
+        if(!userToken)
+            throw new APIError("User Token not set")
 
         const data = await this.post("/access/auth/transaction", body, undefined, {
-            Authorization: await this.store.get("token_user"),
+            Authorization: userToken,
         })
 
         await this.store.set("token_transaction", data.token.transaction)
 
-        const validToken = await this.validateToken(await this.store.get("token_transaction"))
+        const validToken = await this.validateToken(data.token.transaction)
 
         if (!validToken) {
-            this.logout()
+            return this.logout()
         }
+
+        return data.token.transaction
     }
 
     async refreshIfNeeded() {
@@ -179,8 +182,8 @@ export class API {
         return await this.request("GET", endpoint, params)
     }
 
-    async post(endpoint: string, body: object, params?: object, headers?: object) {
-        return await this.request("POST", endpoint, params, body, headers)
+    async post(endpoint: string, body: object, params?: object, headers?: object, is_authorized_endpoint: boolean = true) {
+        return await this.request("POST", endpoint, params, body, headers, undefined, is_authorized_endpoint)
     }
 
     async patch(endpoint: string, body: object, params?: object) {
@@ -195,15 +198,20 @@ export class API {
         return await this.request("DELETE", endpoint, params)
     }
 
-    async request(method: string, endpoint: string, params?: object, data: object = null, headers: object = {}, retry: number = 1) {
+    async request(method: string, endpoint: string, params?: object, data: object = null, headers: object = {}, retry: number = 1, is_authorized_endpoint: boolean = true) {
         if (!this.url) {
             throw new Error("SDK has no URL configured to send requests to.")
         }
 
         const query = params && Object.keys(params).length ? "?" + querify(params) : ""
 
-        if (headers !== null && !headers?.["Authorization"]) {
-            headers["Authorization"] = this.store.get("token_transaction")
+        if (is_authorized_endpoint && headers !== null && !headers?.["Authorization"]) {
+            try {
+                headers["Authorization"] = await this.store.get("token_transaction") || await this.getTransactionToken()
+            } catch (error) {
+                console.error(error)
+                throw error
+            }
         }
 
         try {
