@@ -26,6 +26,7 @@
     "semantic-release": "^19.0.2"
   },
   "dependencies": {
+    "@babel/preset-typescript": "^7.17.12",
     "base-64": "^1.0.0"
   }
 }

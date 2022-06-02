@@ -1,9 +1,7 @@
-import "./plugins"
+// import "./plugins"
+
+import * as store from "./abstract-store"
 
 import { API } from "./api"
-import { AbstractStore } from "./abstract-store"
-import { SDK } from "./sdk"
 
-export { SDK, API, AbstractStore }
-
-export default SDK
+export { API, store }

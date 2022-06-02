@@ -1,8 +1,26 @@
 import { AbstractStore } from "./abstract-store"
+import autoBind from "auto-bind"
 import { getPayload } from "./utils/payload"
 import { querify } from "./utils/params"
 
+type InfoType = {
+    url: string
+    method: string
+    params: object
+    status: string
+    code: number
+    type: string
+    msg: string
+    event_id?: string
+    detail?: string
+    details?: any
+    loc?: string
+}
+
 export class APIError extends Error {
+    message: string
+    info: InfoType
+
     constructor(message, info) {
         super(message) // 'Error' breaks prototype chain here
         this.message = message
@@ -65,28 +83,32 @@ export class APIError extends Error {
     }
 }
 
-export class API {
-    static current
+type APIOptions = {
+    store: AbstractStore
+    url: string
+    tenant: string
+}
 
-    static init(options) {
+export class API {
+    store: AbstractStore
+    url: string
+    tenant: string
+
+    static current: API
+
+    static init(options: APIOptions) {
         if (API.current) return
         API.current = new API(options)
     }
 
-    /**
-     * @param options
-     * @param {AbstractStore} options.store
-     * @param {string} options.url
-     * @param {string} options.tenant
-     */
-    constructor({ store, url, tenant }) {
-        /** @type { AbstractStore } */
+    constructor({ store, url, tenant }: APIOptions) {
         this.store = store
         this.url = url
         this.tenant = tenant
+        autoBind(this)
     }
 
-    login = async values => {
+    async login(values) {
         values.tenant = { id: this.tenant }
         const data = await this.post("/access/auth/user", values)
 
@@ -94,12 +116,14 @@ export class API {
         await this.getTransactionToken()
     }
 
-    logout = async () => {
+    async logout() {
+        console.time("API.logout")
         await this.store.del("token_user")
         await this.store.del("token_transaction")
+        console.timeEnd("API.logout")
     }
 
-    getTransactionToken = async (includeCritical = false) => {
+    async getTransactionToken(includeCritical: boolean = false) {
         const body = {
             include_critical: includeCritical,
         }
@@ -117,7 +141,7 @@ export class API {
         }
     }
 
-    refreshIfNeeded = async () => {
+    async refreshIfNeeded() {
         const tokenTransaction = await this.store.get("token_transaction")
 
         if (!tokenTransaction) {
@@ -131,12 +155,7 @@ export class API {
         return
     }
 
-    /**
-     * Validate token function
-     * @param {string} token
-     * @param {number} interval
-     */
-    validateToken = async (token, interval = 30000) => {
+    async validateToken(token: string, interval: number = 30000): Promise<boolean> {
         if (!token) {
             return false
         }
@@ -156,69 +175,27 @@ export class API {
         return true
     }
 
-    /**
-     * GET convenience method. Calls the request method for you
-     * @param {string} endpoint      Endpoint definition as path
-     * @param {object} params        Query parameters
-     * @return {Promise}
-     */
-    get = async (endpoint, params) => {
+    async get(endpoint: string, params?: object) {
         return await this.request("GET", endpoint, params)
     }
 
-    /**
-     * POST convenience method. Calls the request method for you
-     * @param {string} endpoint      Endpoint definition as path
-     * @param {object} body          Data passed to api
-     * @param {object} params        Query parameters
-     * @return {Promise}
-     */
-    post = async (endpoint, body, params, headers) => {
+    async post(endpoint: string, body: object, params?: object, headers?: object) {
         return await this.request("POST", endpoint, params, body, headers)
     }
 
-    /**
-     * PATCH convenience method. Calls the request method for you
-     * @param {string} endpoint      Endpoint definition as path
-     * @param {object} body          Data passed to api
-     * @param {object} params        Query parameters
-     * @return {Promise}
-     */
-    patch = async (endpoint, body, params) => {
+    async patch(endpoint: string, body: object, params?: object) {
         return await this.request("PATCH", endpoint, params, body)
     }
 
-    /**
-     * PUT convenience method. Calls the request method for you
-     * @param {string} endpoint      Endpoint definition as path
-     * @param {object} body          Data passed to api
-     * @param {object} params        Query parameters
-     * @return {Promise}
-     */
-    put = async (endpoint, body, params) => {
+    async put(endpoint: string, body: object, params?: object) {
         return await this.request("PUT", endpoint, params, body)
     }
 
-    /**
-     * DELETE convenience method. Calls the request method for you
-     * @param {string} endpoint      Endpoint definition as path
-     * @param {object} params        Query parameters
-     * @return {Promise}
-     */
-    delete = async (endpoint, params) => {
+    async delete(endpoint: string, params?: object) {
         return await this.request("DELETE", endpoint, params)
     }
 
-    /**
-     * Perform an API request to the Bizberry API
-     * @param {string} method                   Selected HTTP method
-     * @param {string} endpoint                 Endpoint definition as path
-     * @param {object={}} params                Query parameters
-     * @param {object=null} data                Data passed to api
-     * @param {object={}} headers               Optional headers to include
-     * @return {Promise}
-     */
-    request = async (method, endpoint, params, data = null, headers = {}, retry = 1) => {
+    async request(method: string, endpoint: string, params?: object, data: object = null, headers: object = {}, retry: number = 1) {
         if (!this.url) {
             throw new Error("SDK has no URL configured to send requests to.")
         }
@@ -263,33 +240,33 @@ export class API {
                 ["required_audience_missing", "access_error.field_is_critical"].includes(responseData.detail.code)
             ) {
                 if (retry > 0) {
-                    await this.auth.forceRefresh()
+                    await this.getTransactionToken(true)
                     return await this.request(method, endpoint, params, data, {}, retry - 1)
                 }
             } else if (response.status === 401 && responseData.detail.type === "AuthError") {
                 switch (responseData.detail.code) {
                     case "token_too_old_for_include_critical":
                         if (retry > 0) {
-                            await this.reAuth()
+                            await this.getTransactionToken()
                             return await this.request(method, endpoint, params, data, {}, retry - 1)
                         } else if (retry === 0) {
-                            return await this.auth.refresh()
+                            return await this.getTransactionToken()
                         }
                         break
                     case "invalid_user_token":
-                        await this.reAuth()
+                        await this.getTransactionToken()
                         return
                     default:
-                        this.auth.logout()
-                        await this.auth.refresh()
+                        this.logout()
+                        await this.getTransactionToken()
                         break
                 }
             } else if (response.status === 401 && responseData.detail.type === "ExpiredSignatureError" && retry > 0) {
-                await this.auth.refresh()
+                await this.getTransactionToken()
                 return await this.request(method, endpoint, params, data, {}, retry - 1)
             } else if (response.status === 401 && responseData.detail.type === "JWTError") {
-                this.auth.logout()
-                await this.auth.refresh()
+                this.logout()
+                await this.getTransactionToken()
                 return
             }
 
@@ -315,6 +292,7 @@ export class API {
                 msg: detail?.message || detail?.msg,
                 event_id: errorResponseData.event_id,
                 detail: detail?.detail,
+                details: null,
                 loc: detail?.loc,
             }
 
