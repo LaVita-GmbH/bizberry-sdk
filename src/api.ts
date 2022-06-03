@@ -22,10 +22,10 @@ export class APIError extends Error {
     info: InfoType
 
     constructor(message?: string, info?: InfoType) {
-        super(message) // 'Error' breaks prototype chain here
+        super(message)
         this.message = message
         this.info = info
-        Object.setPrototypeOf(this, new.target.prototype) // restore prototype chain
+        Object.setPrototypeOf(this, new.target.prototype)
     }
 
     get url() {
