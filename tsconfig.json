@@ -14,7 +14,8 @@
 		"isolatedModules": true,
         "declaration": true,
 		// Import non-ES modules as default imports.
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"jsx":"react-jsx"
 	},
 	"include": [
 		"src"
