@@ -1,6 +1,6 @@
 {
   "name": "@lavita-io/bizberry-sdk",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "description": "JS SDK for BizBerry",
   "main": "src/index.js",
   "scripts": {
