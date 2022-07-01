@@ -6,7 +6,7 @@ import { querify } from "./utils/params"
 type InfoType = {
     url: string
     method: string
-    params: object
+    params?: object
     status: number
     code: number
     type: string
@@ -19,57 +19,57 @@ type InfoType = {
 
 export class APIError extends Error {
     message: string
-    info: InfoType
+    info?: InfoType
 
     constructor(message?: string, info?: InfoType) {
         super(message)
-        this.message = message
+        this.message = message || ""
         this.info = info
         Object.setPrototypeOf(this, new.target.prototype)
     }
 
     get url() {
-        return this.info.url
+        return this.info?.url
     }
 
     get method() {
-        return this.info.method.toUpperCase()
+        return this.info?.method.toUpperCase()
     }
 
     get params() {
-        return this.info.params || {}
+        return this.info?.params || {}
     }
 
     get status() {
-        return this.info.status
+        return this.info?.status
     }
 
     get code() {
-        return `${this.info.code || -1}`
+        return `${this.info?.code || -1}`
     }
 
     get type() {
-        return this.info.type
+        return this.info?.type
     }
 
     get msg() {
-        return this.info.msg
+        return this.info?.msg
     }
 
     get event_id() {
-        return this.info.event_id
+        return this.info?.event_id
     }
 
     get detail() {
-        return this.info.detail
+        return this.info?.detail
     }
 
     get details() {
-        return this.info.details
+        return this.info?.details
     }
 
     get loc() {
-        return this.info.loc
+        return this.info?.loc
     }
 
     toString() {
@@ -83,10 +83,32 @@ export class APIError extends Error {
     }
 }
 
+export class RequestError extends Error {
+    response: Response
+    data?: any
+
+    constructor(response: any, data?: any) {
+        super()
+        this.response = response
+        this.data = data
+        Object.setPrototypeOf(this, new.target.prototype)
+    }
+}
+
 type APIOptions = {
     store: AbstractStore
     url: string
     tenant: string
+}
+
+type LoginValuesType = {
+    login: string
+    password?: string,
+    otp?: object,
+}
+
+type TokenPayloadType = {
+    exp: number,
 }
 
 export class API {
@@ -108,9 +130,8 @@ export class API {
         autoBind(this)
     }
 
-    async login(values) {
-        values.tenant = { id: this.tenant }
-        const data = await this.post("/access/auth/user", values, undefined, undefined, false)
+    async login(values: LoginValuesType) {
+        const data = await this.post("/access/auth/user", {tenant: { id: this.tenant }, ...values}, undefined, undefined, false)
 
         await this.store.set("token_user", data.token.user, { isPersistent: true })
         await this.getTransactionToken()
@@ -121,7 +142,7 @@ export class API {
         await this.store.del("token_transaction")
     }
 
-    async getTransactionToken(includeCritical: boolean = false) {
+    async getTransactionToken(includeCritical: boolean = false): Promise<string | undefined> {
         const body = {
             include_critical: includeCritical,
         }
@@ -138,7 +159,8 @@ export class API {
         const validToken = await this.validateToken(data.token.transaction)
 
         if (!validToken) {
-            return this.logout()
+            await this.logout()
+            return
         }
 
         return data.token.transaction
@@ -163,7 +185,7 @@ export class API {
             return false
         }
 
-        const payload = getPayload(token)
+        const payload = getPayload(token) as TokenPayloadType
 
         if (!payload || !payload.exp) {
             return false
@@ -182,7 +204,7 @@ export class API {
         return await this.request("GET", endpoint, params)
     }
 
-    async post(endpoint: string, body: object, params?: object, headers?: object, is_authorized_endpoint: boolean = true) {
+    async post(endpoint: string, body: object, params?: object, headers?: Record<string, unknown>, is_authorized_endpoint: boolean = true) {
         return await this.request("POST", endpoint, params, body, headers, undefined, is_authorized_endpoint)
     }
 
@@ -198,7 +220,7 @@ export class API {
         return await this.request("DELETE", endpoint, params)
     }
 
-    async request(method: string, endpoint: string, params?: object, data: object = null, headers: object = {}, retry: number = 1, is_authorized_endpoint: boolean = true) {
+    async request(method: string, endpoint: string, params?: object, data?: object, headers: Record<string, unknown> = {}, retry: number = 1, is_authorized_endpoint: boolean = true): Promise<any> {
         if (!this.url) {
             throw new Error("SDK has no URL configured to send requests to.")
         }
@@ -258,7 +280,8 @@ export class API {
                             await this.getTransactionToken()
                             return await this.request(method, endpoint, params, data, {}, retry - 1)
                         } else if (retry === 0) {
-                            return await this.getTransactionToken()
+                            await this.getTransactionToken()
+                            throw new APIError()
                         }
                         break
                     case "invalid_user_token":
@@ -278,19 +301,17 @@ export class API {
                 return
             }
 
-            const error = {
-                response: response,
-                data: responseData,
-            }
-            throw error
+            throw new RequestError(response, responseData)
         } catch (error) {
+            if(!(error instanceof RequestError))
+                return
+
             const errorResponse = error && (error.response || {})
             const errorResponseData = error && (error.data || {})
             const detail = Array.isArray(errorResponseData.detail)
                 ? errorResponseData.detail[0]
                 : errorResponseData.detail
-            const baseErrorInfo = {
-                error,
+            const baseErrorInfo: InfoType = {
                 url: endpoint,
                 method: method,
                 params: params,
