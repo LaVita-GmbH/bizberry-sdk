@@ -4,15 +4,19 @@ export type StoreOptionsType = {}
 export type StoreValueOptionsType = {
     isPersistent?: boolean
 }
+export type StoreValueType = {
+    value: string,
+    options?: StoreValueOptionsType,
+}
 
 export class AbstractStore {
-    values: object
+    values: Record<string, StoreValueType>
     constructor(values: StoreOptionsType = {}) {
         this.values = values
         autoBind(this)
     }
 
-    async get(key: string): Promise<string> {
+    async get(key: string): Promise<string | undefined> {
         return this.values[key]?.value
     }
 
