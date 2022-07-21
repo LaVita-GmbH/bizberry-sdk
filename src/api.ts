@@ -220,7 +220,7 @@ export class API {
         return await this.request("DELETE", endpoint, params)
     }
 
-    async request(method: string, endpoint: string, params?: object, data?: object, headers: Record<string, unknown> = {}, retry: number = 1, is_authorized_endpoint: boolean = true): Promise<any> {
+    async request(method: string, endpoint: string, params?: object, data?: object, headers: Record<string, unknown> = {}, retry: number = 0, is_authorized_endpoint: boolean = true): Promise<any> {
         if (!this.url) {
             throw new Error("SDK has no URL configured to send requests to.")
         }
@@ -269,32 +269,13 @@ export class API {
                 ["JWTClaimsError", "FieldAccessError"].includes(responseData.detail.type) &&
                 ["required_audience_missing", "access_error.field_is_critical"].includes(responseData.detail.code)
             ) {
-                if (retry > 0) {
+                if (retry < 1) {
                     await this.getTransactionToken(true)
-                    return await this.request(method, endpoint, params, data, {}, retry - 1)
+                    return await this.request(method, endpoint, params, data, {}, retry + 1)
                 }
-            } else if (response.status === 401 && responseData.detail.type === "AuthError") {
-                switch (responseData.detail.code) {
-                    case "token_too_old_for_include_critical":
-                        if (retry > 0) {
-                            await this.getTransactionToken()
-                            return await this.request(method, endpoint, params, data, {}, retry - 1)
-                        } else if (retry === 0) {
-                            await this.getTransactionToken()
-                            throw new APIError()
-                        }
-                        break
-                    case "invalid_user_token":
-                        await this.getTransactionToken()
-                        return
-                    default:
-                        this.logout()
-                        await this.getTransactionToken()
-                        break
-                }
-            } else if (response.status === 401 && responseData.detail.type === "ExpiredSignatureError" && retry > 0) {
+            } else if (response.status === 401 && responseData.detail.type === "ExpiredSignatureError" && retry < 1) {
                 await this.getTransactionToken()
-                return await this.request(method, endpoint, params, data, {}, retry - 1)
+                return await this.request(method, endpoint, params, data, {}, retry + 1)
             } else if (response.status === 401 && responseData.detail.type === "JWTError") {
                 this.logout()
                 await this.getTransactionToken()
@@ -332,7 +313,7 @@ export class API {
             if (error && error.response && error.data) {
                 throw new APIError(detail?.type || "Unknown error occured", baseErrorInfo)
             } else {
-                if (retry > 0) {
+                if (retry < 1) {
                     return await this.request(method, endpoint, params, data, {}, retry - 1)
                 }
                 throw new APIError("Network error", {
