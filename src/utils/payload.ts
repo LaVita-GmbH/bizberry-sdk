@@ -1,15 +1,22 @@
 import * as base64 from "base-64"
 
-/**
- * Retrieves the payload from a JWT
- * @internal
- * @param  {String} token The JWT to retrieve the payload from
- * @return {Object}       The JWT payload
- */
-export function getPayload(token) {
+interface TokenPayload {
+    iss: string
+    iat: number
+    nbf: number
+    exp: number
+    sub: string
+    ten: string
+    crt: boolean
+    aud: string[]
+    rls: string[]
+    jti: string
+}
+
+export function getPayload(token: string): TokenPayload {
     if (!token || token.length < 0 || token.split(".").length <= 0) {
         // no token or invalid token equals no payload
-        return {}
+        throw Error("Invalid Token format")
     }
 
     try {
@@ -27,6 +34,6 @@ export function getPayload(token) {
         return payloadObject
     } catch (err) {
         // return empty payload in case of an error
-        return {}
+        throw Error("Invalid Token data")
     }
 }
