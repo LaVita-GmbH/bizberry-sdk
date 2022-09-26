@@ -103,7 +103,7 @@ type APIOptions = {
     tenant: string
 }
 
-type LoginValuesType = {
+export type LoginValuesType = {
     login?: string
     id?: string
     password?: string,
