@@ -38,7 +38,7 @@
     },
     "dependencies": {
         "@types/base-64": "^1.0.0",
-        "autobind": "^1.0.3",
+        "auto-bind": "^5.0.1",
         "base-64": "^1.0.0"
     }
 }
