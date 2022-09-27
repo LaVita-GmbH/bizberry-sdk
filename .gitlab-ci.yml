@@ -27,5 +27,6 @@ publish:
   script:
     - npm run build
     - npm run semantic-release
+    - cd dist && ../node_modules/.bin/semantic-release
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
