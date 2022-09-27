@@ -39,6 +39,7 @@
     "dependencies": {
         "@types/base-64": "^1.0.0",
         "auto-bind": "^5.0.1",
-        "base-64": "^1.0.0"
+        "base-64": "^1.0.0",
+        "rollup-plugin-generate-package-json": "^3.2.0"
     }
 }

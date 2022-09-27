@@ -1,4 +1,5 @@
 import commonjs from "@rollup/plugin-commonjs"
+import generatePackageJson from "rollup-plugin-generate-package-json"
 import peerDepsExternal from "rollup-plugin-peer-deps-external"
 import resolve from "@rollup/plugin-node-resolve"
 import typescript from "rollup-plugin-typescript2"
@@ -11,5 +12,13 @@ export default {
             sourcemap: true,
         },
     ],
-    plugins: [peerDepsExternal(), resolve(), commonjs(), typescript({ tsconfig: "tsconfig.json" })],
+    plugins: [
+        generatePackageJson({
+            outputFolder: "dist",
+        }),
+        peerDepsExternal(),
+        resolve(),
+        commonjs(),
+        typescript({ tsconfig: "tsconfig.json" }),
+    ],
 }
