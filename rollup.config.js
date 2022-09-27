@@ -6,20 +6,20 @@ import typescript from "rollup-plugin-typescript2"
 
 export default {
     input: "src/index.ts",
-    output: [
-        {
-            dir: "./dist",
-            sourcemap: true,
-        },
-    ],
+    output: {
+        dir: "./dist",
+        sourcemap: true,
+    },
     plugins: [
-        generatePackageJson({
-            inputFolder: "./",
-            outputFolder: "dist",
-        }),
         peerDepsExternal(),
         resolve(),
         commonjs(),
         typescript({ tsconfig: "tsconfig.json" }),
+        generatePackageJson({
+            outputFolder: "dist",
+            baseContents: pkg => ({
+                name: pkg.name,
+            }),
+        }),
     ],
 }
