@@ -14,6 +14,7 @@ export default {
     ],
     plugins: [
         generatePackageJson({
+            inputFolder: "./",
             outputFolder: "dist",
         }),
         peerDepsExternal(),
