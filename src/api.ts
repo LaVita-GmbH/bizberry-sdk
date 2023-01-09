@@ -191,6 +191,8 @@ export class API {
         await this.store.set("token_user", data.token.user, { isPersistent: true })
         if(getTransactionToken)
         await this.getTransactionToken(includeCritical)
+
+        return data
     }
 
     async logout() {
