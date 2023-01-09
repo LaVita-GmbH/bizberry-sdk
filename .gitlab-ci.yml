@@ -35,6 +35,7 @@ build:
 
 publish:
   stage: release
+  script:
     - cd dist
     - npm publish
   artifacts:
