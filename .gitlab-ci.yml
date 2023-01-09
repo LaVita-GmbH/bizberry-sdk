@@ -20,12 +20,25 @@ variables:
   NPM_TOKEN: ${CI_JOB_TOKEN}
 
 stages:
+  - build
   - release
+
+build:
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 publish:
   stage: release
-  script:
-    - npm run build
-    - cd dist && ../node_modules/.bin/semantic-release
+    - cd dist
+    - npm publish
+  artifacts:
+    paths:
+      - dist
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
