@@ -18,7 +18,8 @@ export default {
         generatePackageJson({
             outputFolder: "dist",
             baseContents: pkg => ({
-                name: pkg.name,
+                ...pkg,
+                main: "index.js",
             }),
         }),
     ],
