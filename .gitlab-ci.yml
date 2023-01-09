@@ -37,6 +37,7 @@ publish:
   stage: release
   script:
     - cd dist
+    - cp ../.npmrc .
     - npm publish
   artifacts:
     paths:
