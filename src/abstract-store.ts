@@ -16,8 +16,8 @@ export class AbstractStore {
         autoBind(this)
     }
 
-    async get(key: string): Promise<string | undefined> {
-        return this.values[key]?.value
+    async get(key: string): Promise<string | null> {
+        return this.values[key]?.value || null
     }
 
     async set(key: string, value: string, options?: StoreValueOptionsType): Promise<void> {

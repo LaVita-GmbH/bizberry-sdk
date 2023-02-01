@@ -1,12 +1,12 @@
 {
   "name": "@lavita-io/bizberry-sdk",
-  "version": "1.15.2",
+  "version": "1.16.1",
   "lockfileVersion": 2,
   "requires": true,
   "packages": {
     "": {
       "name": "@lavita-io/bizberry-sdk",
-      "version": "1.15.2",
+      "version": "1.16.1",
       "license": "AGPL-3.0-or-later",
       "dependencies": {
         "@types/base-64": "^1.0.0",
